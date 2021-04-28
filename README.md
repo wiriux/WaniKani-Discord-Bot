@@ -3,7 +3,6 @@ Discord bot written in Python for doing all kinds of WaniKani API actions.
 This bot is originally developed by [AlexanderColen](https://github.com/AlexanderColen/WaniKani-Discord-Bot)
 We have just continued developing the bot, as development has stopped and some features were no longer functioning.
 
-
 **Current features**
 * Add and remove a user from WaniKani API usage via the bot.
 * Display a WaniKani user's overall statistics.
