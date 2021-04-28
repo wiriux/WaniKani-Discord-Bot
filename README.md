@@ -1,6 +1,8 @@
-# WaniKani Discord Bot
+# WaniKani Discord Bot - Originally by AlexanderColen
 Discord bot written in Python for doing all kinds of WaniKani API actions.
-[Add me to your server(s)!](https://discordapp.com/api/oauth2/authorize?client_id=647849445806964742&permissions=388160&scope=bot)
+This bot is originally developed by [AlexanderColen](https://github.com/AlexanderColen/WaniKani-Discord-Bot)
+We have just continued developing the bot, as development has stopped and some features were no longer functioning.
+
 
 **Current features**
 * Add and remove a user from WaniKani API usage via the bot.
@@ -9,10 +11,8 @@ Discord bot written in Python for doing all kinds of WaniKani API actions.
 * Decide the bot's prefix for use in chat.
 * Offer global help with the bot.
 * Various image commands
+* Displaying leveling statistics.
 
-**In progress**
-* Displaying previous leveling statistics.
-* More in-depth help command for each separate command.
 
 **Expansions**
 * Look up a radical, kanji or vocabulary item and display information.

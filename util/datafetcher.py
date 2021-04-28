@@ -93,8 +93,10 @@ class DataFetcher:
         burned: int = 0
 
         assignments_data: Dict[str, Any] = await self.get_wanikani_data(user_id=user_id, resource='assignments')
+        print(len(assignments_data["data"]))
         while True:
             # Count every entry.
+
             for entry in assignments_data['data']:
                 if entry['data']['subject_type'] == 'radical':
                     radicals += 1
@@ -103,7 +105,7 @@ class DataFetcher:
                 elif entry['data']['subject_type'] == 'vocabulary':
                     vocabulary += 1
 
-                if entry['data']['srs_stage_name'] == 'Burned':
+                if entry['data']['srs_stage'] == 9:
                     burned += 1
 
             # Break if there is no more data after this.

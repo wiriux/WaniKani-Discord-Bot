@@ -9,7 +9,7 @@ from PIL import Image, ImageFont, ImageDraw
 from typing import Any, Dict, List
 import discord
 import random
-
+from datetime import datetime, timedelta
 
 class WaniKaniBotClient(discord.Client):
     command_count: int = 0
@@ -68,8 +68,8 @@ class WaniKaniBotClient(discord.Client):
         """
 
         # Always allow help by using wk!help.
-        if message.content == 'wk!help':
-            await self.get_help(words=['help'], channel=message.channel, prefix=prefix)
+        # if message.content == 'wk!help':
+        #     await self.get_help(words=['help'], channel=message.channel, prefix=prefix)
 
         if message.content.startswith(prefix):
             print('\n{0}'.format(message))
@@ -406,6 +406,7 @@ class WaniKaniBotClient(discord.Client):
         :param author: The Discord.User that requested the statistics.
         :param prefix: The prefix used for the Crabigator.
         """
+
         user_id = self.extract_user_id(words=words, author=author)
         if user_id == -1:
             await message.channel.send(content='Please tag **one** Discord User,'
@@ -433,6 +434,8 @@ class WaniKaniBotClient(discord.Client):
         sad_emoji: discord.Emoji = await self.fetch_emoji(message.guild, ['sad', 'cry', 'thumbsdown', 'baka'])
         if not sad_emoji:
             sad_emoji = ':thumbsdown:'
+
+
         if user.subscribed:
             embed.add_field(name='Subscription Status',
                             value=f"**{user.subscription_type.capitalize()}** cultist member since"
@@ -441,13 +444,16 @@ class WaniKaniBotClient(discord.Client):
         else:
             embed.add_field(name='Subscription Status', value=f"Wannabe cultist... {sad_emoji}", inline=False)
         # Fetch counts of radicals, kanji and vocabulary learned and burned.
+
         item_counts: List[int] = await self._dataFetcher.fetch_wanikani_item_counts(user_id=user_id)
+
         embed.add_field(name='Radicals Learned:', value=str(item_counts[0]), inline=True)
         embed.add_field(name='Kanji Learned:', value=str(item_counts[1]), inline=True)
         embed.add_field(name='Vocabulary Learned:', value=str(item_counts[2]), inline=True)
         embed.add_field(name='Items Burned:', value=str(item_counts[3]), inline=False)
         embed.add_field(name='Lessons available:', value=str(len(summary.available_lessons)), inline=True)
         embed.add_field(name='Reviews available:', value=str(len(summary.available_reviews)), inline=True)
+
         await self.send_embed(channel=message.channel, embed=embed)
 
     async def get_daily_stats(self, words: List[str], channel: discord.TextChannel,
@@ -537,12 +543,54 @@ class WaniKaniBotClient(discord.Client):
         user: User = await self.get_user_data_model(user_id=user_id)
         progression: Dict[str, Any] = await self._dataFetcher.get_wanikani_data(user_id=user_id,
                                                                                 resource='level_progressions')
+        embed: discord.Embed = discord.Embed(title='Leveling Statistics',
+                                             colour=author.colour,
+                                             timestamp=datetime.now())
+        embed.set_thumbnail(url='https://cdn.wanikani.com/default-avatar-300x300-20121121.png')
+        embed.set_author(name=user.username, icon_url='https://knowledge.wanikani.com/siteicon.png',
+                         url=user.profile_url)
+        # Add all the custom embed fields.
         # Add found data to user object.
+
+        level_times = []
+        latest_creation = None
+        latest_level = 0
         for level_progress in progression['data']:
             user.level_progressions.append(level_progress)
-        await channel.send(
-            content=f"Compiling your data took forever, so I took a nap instead. "
-            f"Just use https://www.wkstats.com/ for now or bitch at <@!209076181365030913>.")
+            # "yyyy’-‘MM’-‘dd’T’HH’:’mm’:’ss.fffffffK"
+            start_date = datetime.strptime(level_progress["data"]["created_at"], '%Y-%m-%dT%H:%M:%S.%fZ')
+            latest_creation = start_date
+            latest_level = level_progress["data"]["level"]
+            end_date = None
+            if level_progress["data"]["passed_at"]:
+                end_date = datetime.strptime(level_progress["data"]["passed_at"], '%Y-%m-%dT%H:%M:%S.%fZ')
+            td = None
+            if end_date:
+                td = end_date - start_date
+            if td:
+                level_times.append(td)
+
+            # delta_string = "%s days and %s hours" % (str(td.days), str(td.seconds // 3600)) if td else "In progress."
+            # level
+            #print(delta_string)
+
+        avg_td = sum(level_times, timedelta(0)) / len(level_times)
+        delta_string = "%s days and %s hours" % (str(avg_td.days), str(avg_td.seconds // 3600)) if avg_td else "In progress."
+        embed.add_field(name='Level' ,
+                        value='%s' % latest_level,
+                        inline=True)
+        embed.add_field(name='Average level-up time:',
+                        value=delta_string,
+                        inline=False)
+        c_td = datetime.now() - latest_creation
+        delta_string = "%s days and %s hours" % (str(c_td.days), str(c_td.seconds // 3600)) if c_td else "In progress."
+        embed.add_field(name='Time on level %s:' % latest_level,
+                        value=delta_string,
+                        inline=False)
+
+
+
+        await self.send_embed(channel=channel, embed=embed)
 
     async def get_help(self, words: List[str], channel: discord.TextChannel, prefix: str):
         """
@@ -577,6 +625,10 @@ class WaniKaniBotClient(discord.Client):
                             inline=False)
             embed.add_field(name=f'{prefix}levelstats',
                             value="Displays the WaniKani user's leveling statistics. "
+                                  "Optionally you can target another user.",
+                            inline=False)
+            embed.add_field(name=f'{prefix}daily',
+                            value="Displays the WaniKani user's daily statistics. "
                                   "Optionally you can target another user.",
                             inline=False)
             embed.add_field(name=f'{prefix}draw',
