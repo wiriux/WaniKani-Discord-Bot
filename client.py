@@ -627,10 +627,10 @@ class WaniKaniBotClient(discord.Client):
                             value="Displays the WaniKani user's leveling statistics. "
                                   "Optionally you can target another user.",
                             inline=False)
-            embed.add_field(name=f'{prefix}daily',
-                            value="Displays the WaniKani user's daily statistics. "
-                                  "Optionally you can target another user.",
-                            inline=False)
+            # embed.add_field(name=f'{prefix}daily',
+            #                 value="Displays the WaniKani user's daily statistics. "
+            #                       "Optionally you can target another user.",
+            #                 inline=False)
             embed.add_field(name=f'{prefix}draw',
                             value="Draws your message on a sign.",
                             inline=False)
