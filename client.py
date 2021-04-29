@@ -8,6 +8,7 @@ from datetime import datetime
 from PIL import Image, ImageFont, ImageDraw
 from typing import Any, Dict, List
 import discord
+import asyncio
 import random
 from datetime import datetime, timedelta
 
@@ -27,6 +28,66 @@ class WaniKaniBotClient(discord.Client):
         self.descriptions = self.load_text_from_file_to_array(filename='resources/descriptions.txt')
         self.statuses = self.load_text_from_file_to_array(filename='resources/statuses.txt')
 
+    async def periodic_status_checker(self):
+        print("Starting background tasks...")
+        await self.wait_until_ready()
+        channel = self.get_channel(836228558295793678)
+        counter = 0
+        run_every = 60*5
+        while True:
+            print("[%s] - Checking level progress." % datetime.now())
+            counter += 1
+            now = datetime.now()
+            check_time = now.replace(hour=12, minute=00)
+
+            if check_time < datetime.now() < (check_time + timedelta(seconds=run_every)):
+                print("Broadcasting daily update.")
+                users = self._dataStorage.get_api_users()
+                total_reviews = 0
+                total_lessons = 0
+                for user in users:
+                    user_id = user["_id"]
+                    if not self._dataStorage.find_api_user(user_id=user_id):
+                        break
+                    if user_id not in self._dataFetcher.wanikani_users.keys():
+                        self._dataFetcher.wanikani_users[user_id] = {}
+                    summary: Summary = await self._dataFetcher.fetch_wanikani_user_summary(user_id=user_id)
+                    total_reviews += len(summary.available_reviews)
+                    total_lessons += len(summary.available_lessons)
+                embed: discord.Embed = discord.Embed(title="こにしわ!",
+                                                     timestamp=datetime.now())
+                embed.add_field(name="You're in this together!", value="The following stats are the combined stats of all registered users on the channel!", inline=False)
+                embed.add_field(name='Total reviews in queue: ', value=total_reviews, inline=False)
+                embed.add_field(name='Total lessons in queue: ', value=total_lessons, inline=False)
+                embed.add_field(name='You can do it!', value="If you continue like this you'll learn japanese in no time!", inline=False)
+                embed.set_thumbnail(url='https://cdn.wanikani.com/default-avatar-300x300-20121121.png')
+
+                await self.send_embed(channel=channel, embed=embed)
+
+            users = self._dataStorage.get_api_users()
+            for user in users:
+                 progression: Dict[str, Any] = await self._dataFetcher.get_wanikani_data(user_id=user["_id"],
+                 resource="level_progressions")
+                 user_data= await self.get_user_data_model(user_id=user["_id"])
+                 latest_creation = None
+                 for prog in progression["data"]:
+                     start_date = datetime.strptime(prog["data"]["created_at"], '%Y-%m-%dT%H:%M:%S.%fZ')
+                     latest_creation = start_date
+                 if latest_creation:
+                     time_since_level = datetime.now() - latest_creation
+                     if timedelta(seconds=run_every) > time_since_level:
+                         embed: discord.Embed = discord.Embed(title="%s REACHED LEVEL %s!" % (user_data.username.upper(), user_data.level),
+                                                              timestamp=datetime.now())
+                         embed.add_field(name='Congratulations!', value="%s just leveled up to level %s!" % ("<@!" + str(user["_id"])+">", user_data.level), inline=False)
+                         embed.add_field(name='Well done!', value="The crabigator concrabtulates you...", inline=False)
+                         embed.set_thumbnail(url='https://cdn.wanikani.com/assets/user/bg_avatar-d01055522aa62f670a0314af689361c4c8250d20323f3c63b2de6e9d9c3eda33.png')
+                         print("Broadcasting level-up.")
+                         await self.send_embed(channel=channel, embed=embed)
+                         image_name = "img/concrabs.png"
+                         with open(image_name, 'rb') as image:
+                             await channel.send(file=discord.File(fp=image, filename=image_name))
+            await asyncio.sleep(run_every)
+
     async def on_ready(self) -> None:
         """
         Event method that gets called when the connection to Discord has been established.
@@ -36,8 +97,11 @@ class WaniKaniBotClient(discord.Client):
         print('#################################')
         print('# Logged on as {0}! #'.format(self.user))
         print('#################################')
+        self.loop.create_task(self.periodic_status_checker())
         await self.change_status()
         await self._scheduler.run(coro=self.change_status, time=300)
+
+
 
     async def on_message(self, message: discord.Message) -> None:
         """
@@ -177,7 +241,7 @@ class WaniKaniBotClient(discord.Client):
         """
         await channel.send(
             content=f'Crabigator got too caught up studying and failed to handle `{prefix}{attempted_command}`. '
-            f'Please notify my Overlord <@!209076181365030913>.')
+            f'Please notify one of my Overlords <@!499359394593505301> or <@!152145257767632896>.')
 
     @staticmethod
     def split_text_into_lines(text: str, max_width: int, font: ImageFont) -> List[str]:
@@ -216,7 +280,8 @@ class WaniKaniBotClient(discord.Client):
         bg_image: Image = Image.open('img/crabigator_sign.png')
         text_image: Image = Image.open('img/to_draw_image.png')
         draw: ImageDraw = ImageDraw.Draw(text_image)
-        font: ImageFont = ImageFont.truetype('/root/.fonts/TruetypewriterPolyglott-mELa.ttf', 40)
+        font: ImageFont = ImageFont.truetype('resources/fonts/TruetypewriterPolyglott-mELa.ttf', 40)
+        text = text if text != "wk!draw <MESSAGE>" else "Write something maybe?"
         # Change to this font for Windows machines.
         # font: ImageFont = ImageFont.truetype('arial.ttf', 40)
         # Split the text into lines based on width.
@@ -425,6 +490,7 @@ class WaniKaniBotClient(discord.Client):
                                              colour=author.colour, timestamp=datetime.now())
         embed.set_thumbnail(url='https://cdn.wanikani.com/default-avatar-300x300-20121121.png')
         summary: Summary = await self._dataFetcher.fetch_wanikani_user_summary(user_id=user_id)
+        print(user_id)
         # Add all the custom embed fields.
         embed.add_field(name='Level', value=f'{user.level}/{user.max_level}', inline=False)
         # Get a good and bad emoji from the Guild.

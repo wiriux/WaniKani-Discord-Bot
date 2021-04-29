@@ -34,6 +34,15 @@ class DataStorage:
         users = self.db['wanikani-users']
         return users.find_one({"_id": user_id})
 
+    def get_api_users(self) -> Dict[str, Any]:
+        """
+        Gets a WaniKani user based on ID.
+        :param user_id: The Discord Member ID.
+        :return: The first found WaniKani user object.
+        """
+        users = self.db['wanikani-users']
+        return users.find({})
+
     def remove_api_user(self, user_id: int) -> int:
         """
         Deletes a WaniKani user based on ID.

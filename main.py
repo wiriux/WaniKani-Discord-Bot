@@ -5,7 +5,8 @@ import json
 
 
 if __name__ == '__main__':
-    print('WaniKani Discord Bot - Copyright (C) 2019 - Alexander Colen')
+    print("WaniKani Discord Bot v2")
+    print('Forked from: WaniKani Discord Bot - 2019 - Alexander Colen')
     token: str = None
     print('Fetching settings.json...')
     with open('resources/settings.json') as json_data_file:
