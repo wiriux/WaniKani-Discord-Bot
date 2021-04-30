@@ -280,7 +280,7 @@ class WaniKaniBotClient(discord.Client):
         bg_image: Image = Image.open('img/crabigator_sign.png')
         text_image: Image = Image.open('img/to_draw_image.png')
         draw: ImageDraw = ImageDraw.Draw(text_image)
-        font: ImageFont = ImageFont.truetype('resources/fonts/TruetypewriterPolyglott-mELa.ttf', 40)
+        font: ImageFont = ImageFont.truetype('resources/fonts/FreeMono.ttf', 40)
         text = text if text != "wk!draw <MESSAGE>" else "Write something maybe?"
         # Change to this font for Windows machines.
         # font: ImageFont = ImageFont.truetype('arial.ttf', 40)
