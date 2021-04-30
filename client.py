@@ -54,7 +54,7 @@ class WaniKaniBotClient(discord.Client):
                     summary: Summary = await self._dataFetcher.fetch_wanikani_user_summary(user_id=user_id)
                     total_reviews += len(summary.available_reviews)
                     total_lessons += len(summary.available_lessons)
-                embed: discord.Embed = discord.Embed(title="こんにちわ!",
+                embed: discord.Embed = discord.Embed(title="Daily Update! - こんにちわ!",
                                                      timestamp=datetime.now())
                 embed.add_field(name="You're in this together!", value="The following stats are the combined stats of all registered users on the channel!", inline=False)
                 embed.add_field(name='Total reviews in queue: ', value=total_reviews, inline=False)
