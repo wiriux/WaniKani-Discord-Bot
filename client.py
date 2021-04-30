@@ -38,7 +38,7 @@ class WaniKaniBotClient(discord.Client):
             print("[%s] - Checking level progress." % datetime.now())
             counter += 1
             now = datetime.now()
-            check_time = now.replace(hour=12, minute=00)
+            check_time = now.replace(hour=17, minute=00)
 
             if check_time < datetime.now() < (check_time + timedelta(seconds=run_every)):
                 print("Broadcasting daily update.")
