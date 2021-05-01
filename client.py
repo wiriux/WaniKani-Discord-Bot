@@ -76,9 +76,9 @@ class WaniKaniBotClient(discord.Client):
                  if latest_creation:
                      time_since_level = datetime.now() - latest_creation
                      if timedelta(seconds=run_every) > time_since_level:
-                         embed: discord.Embed = discord.Embed(title="%s REACHED LEVEL %s!" % (user_data.username.upper(), user_data.level),
+                         embed: discord.Embed = discord.Embed(title="%s REACHED LEVEL %s!" % (user_data.username.upper(), str(user_data.level+1)),
                                                               timestamp=datetime.now())
-                         embed.add_field(name='Congratulations!', value="%s just leveled up to level %s!" % ("<@!" + str(user["_id"])+">", user_data.level), inline=False)
+                         embed.add_field(name='Congratulations!', value="%s just leveled up to level %s!" % ("<@!" + str(user["_id"])+">", str(user_data.level+1)), inline=False)
                          embed.add_field(name='Well done!', value="The crabigator concrabtulates you...", inline=False)
                          embed.set_thumbnail(url='https://cdn.wanikani.com/assets/user/bg_avatar-d01055522aa62f670a0314af689361c4c8250d20323f3c63b2de6e9d9c3eda33.png')
                          print("Broadcasting level-up.")
