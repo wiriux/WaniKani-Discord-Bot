@@ -119,3 +119,22 @@ class DataFetcher:
                                                                 after_id=after_id)
 
         return [radicals, kanji, vocabulary, burned]
+
+    """
+        I created this function because I am not sure how to extract the info from User class using the function 
+        fetch_wanikani_user_data(). We get back a Util.models.wanikani.User object but I am not too familiar with 
+        python. I tried instantiating User() within the client class but I would have to have fields for all of the 
+        arguments.
+        """
+
+    async def get_standings_info(self, user_id: int) -> User:
+        user_data: Dict[str, Any] = await self.get_wanikani_data(user_id=user_id, resource='user')
+        user: User = User(last_update=user_data['data_updated_at'], wk_id=user_data['data']['id'],
+                          username=user_data['data']['username'], profile_url=user_data['data']['profile_url'],
+                          level=user_data['data']['level'], member_since=user_data['data']['started_at'],
+                          subscribed=user_data['data']['subscription']['active'],
+                          subscription_type=user_data['data']['subscription']['type'],
+                          max_level=user_data['data']['subscription']['max_level_granted'],
+                          on_vacation_since=user_data['data']['current_vacation_started_at'])
+        list = (user.username, user.level)
+        return list

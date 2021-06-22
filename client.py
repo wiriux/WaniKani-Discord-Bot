@@ -54,7 +54,7 @@ class WaniKaniBotClient(discord.Client):
                     summary: Summary = await self._dataFetcher.fetch_wanikani_user_summary(user_id=user_id)
                     total_reviews += len(summary.available_reviews)
                     total_lessons += len(summary.available_lessons)
-                embed: discord.Embed = discord.Embed(title="こんにちわ!",
+                embed: discord.Embed = discord.Embed(title="Daily Update! - こんにちわ!",
                                                      timestamp=datetime.now())
                 embed.add_field(name="You're in this together!", value="The following stats are the combined stats of all registered users on the channel!", inline=False)
                 embed.add_field(name='Total reviews in queue: ', value=total_reviews, inline=False)
@@ -76,9 +76,9 @@ class WaniKaniBotClient(discord.Client):
                  if latest_creation:
                      time_since_level = datetime.now() - latest_creation
                      if timedelta(seconds=run_every) > time_since_level:
-                         embed: discord.Embed = discord.Embed(title="%s REACHED LEVEL %s!" % (user_data.username.upper(), user_data.level),
+                         embed: discord.Embed = discord.Embed(title="%s REACHED LEVEL %s!" % (user_data.username.upper(), str(user_data.level+1)),
                                                               timestamp=datetime.now())
-                         embed.add_field(name='Congratulations!', value="%s just leveled up to level %s!" % ("<@!" + str(user["_id"])+">", user_data.level), inline=False)
+                         embed.add_field(name='Congratulations!', value="%s just leveled up to level %s!" % ("<@!" + str(user["_id"])+">", str(user_data.level+1)), inline=False)
                          embed.add_field(name='Well done!', value="The crabigator concrabtulates you...", inline=False)
                          embed.set_thumbnail(url='https://cdn.wanikani.com/assets/user/bg_avatar-d01055522aa62f670a0314af689361c4c8250d20323f3c63b2de6e9d9c3eda33.png')
                          print("Broadcasting level-up.")
@@ -280,7 +280,7 @@ class WaniKaniBotClient(discord.Client):
         bg_image: Image = Image.open('img/crabigator_sign.png')
         text_image: Image = Image.open('img/to_draw_image.png')
         draw: ImageDraw = ImageDraw.Draw(text_image)
-        font: ImageFont = ImageFont.truetype('resources/fonts/TruetypewriterPolyglott-mELa.ttf', 40)
+        font: ImageFont = ImageFont.truetype('resources/fonts/FreeMono.ttf', 40)
         text = text if text != "wk!draw <MESSAGE>" else "Write something maybe?"
         # Change to this font for Windows machines.
         # font: ImageFont = ImageFont.truetype('arial.ttf', 40)
@@ -404,6 +404,8 @@ class WaniKaniBotClient(discord.Client):
         # Fetch a WaniKani User's leveling statistics.
         elif command in ['levelstats', 'levelstats', 'leveling', 'levelingstatus', 'levelingstats']:
             await self.get_leveling_stats(words=words, channel=message.channel, author=message.author, prefix=prefix)
+        elif command in ['standings', 'league', 'leaderboard', 'lb']:
+            await self.get_standings(channel=message.channel, author=message.author)
         elif command in ['draw', 'certify']:
             await self.draw_on_sign(command=command, message=message, channel=message.channel, prefix=prefix)
         # Congratulate someone.
@@ -587,6 +589,56 @@ class WaniKaniBotClient(discord.Client):
                         inline=False)
         await self.send_embed(channel=channel, embed=embed)
 
+    async def get_standings(self, channel: discord.TextChannel,
+                            author: discord.member.Member):
+
+        embed: discord.Embed = discord.Embed(title='Leaderboard',
+                                             colour=author.colour,
+                                             timestamp=datetime.now())
+        embed.set_thumbnail(url='https://cdn.wanikani.com/default-avatar-300x300-20121121.png')
+
+        """
+        We would be adding users to the database so that we have their user_id on record.
+        When we call this function the idea is to iterate through all of the users and store the username and levels
+        as a tuple in a list. We can then represent it as a string and print it.
+
+        I am not sure how to get username and level directly from fetch_wanikani_user_data() so I created a separate
+        function in datafetcher.py. 
+        """
+
+        users = self._dataStorage.get_api_users()
+        retrieve_user_info: Dict[str, Any]
+        list = []
+        for user in users:
+            user_id = user["_id"]
+            retrieve_user_info = await self._dataFetcher.get_standings_info(user_id=user_id)
+            list.insert(0, retrieve_user_info)
+        print("Final list is :", list)
+
+        # list = [('user1', 6), ('user2', 3), ('user3', 7), ('user4', 7)]
+        # print(list)
+
+        sorted_list = (sorted(list, key=lambda x: x[1], reverse=True))
+        str_users = ""
+        str_levels = ""
+
+        # get all of the usernames in descending order of level status
+        for itr in sorted_list:
+            str_users = str_users + (str(itr[0]) + "\n")
+
+        # get the levels of all users
+        for itr in sorted_list:
+            str_levels = str_levels + (str(itr[1]) + "\n")
+
+        embed.add_field(name='Username',
+                        value='%s' % str_users,
+                        inline=True)
+        embed.add_field(name='level',
+                        value='%s' % str_levels,
+                        inline=True)
+
+        await self.send_embed(channel=channel, embed=embed)
+
     async def get_leveling_stats(self, words: List[str], channel: discord.TextChannel,
                                  author: discord.member.Member, prefix: str):
         """
@@ -699,6 +751,9 @@ class WaniKaniBotClient(discord.Client):
             #                 inline=False)
             embed.add_field(name=f'{prefix}draw',
                             value="Draws your message on a sign.",
+                            inline=False)
+            embed.add_field(name=f'{prefix}lb',
+                            value="Displays the leaderboard.",
                             inline=False)
             embed.add_field(name=f'{prefix}congratulations',
                             value=':tada:',
