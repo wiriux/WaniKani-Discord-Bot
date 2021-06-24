@@ -404,8 +404,8 @@ class WaniKaniBotClient(discord.Client):
         # Fetch a WaniKani User's leveling statistics.
         elif command in ['levelstats', 'levelstats', 'leveling', 'levelingstatus', 'levelingstats']:
             await self.get_leveling_stats(words=words, channel=message.channel, author=message.author, prefix=prefix)
-        elif command in ['standings', 'league', 'leaderboard', 'lb']:
-            await self.get_standings(channel=message.channel, author=message.author)
+        elif command in ['standings', 'league', 'leaderboard', 'lb', 'lbmob']:
+            await self.get_standings(channel=message.channel, author=message.author, word= command)
         elif command in ['draw', 'certify']:
             await self.draw_on_sign(command=command, message=message, channel=message.channel, prefix=prefix)
         # Congratulate someone.
@@ -426,6 +426,9 @@ class WaniKaniBotClient(discord.Client):
         # Provides help with this Bot's commands.
         elif command in ['help', 'h', 'commands']:
             await self.get_help(words=words, channel=message.channel, prefix=prefix)
+        elif command in ['addmelb']:
+            self._dataStorage.add_user_to_leaderboard(user_id=message.author.id)
+            await message.channel.send(content=f"<@{message.author.id}> has been added to the leaderboard")
         # Unknown Command.
         else:
             await message.channel.send(
@@ -589,9 +592,39 @@ class WaniKaniBotClient(discord.Client):
                         inline=False)
         await self.send_embed(channel=channel, embed=embed)
 
-    async def get_standings(self, channel: discord.TextChannel,
-                            author: discord.member.Member):
+    async def leaderboard_for_mobile(self, users: List[str]):
+        index = 0
+        total_num_each_level = []
+        levels = []
 
+        # Retrieve all the levels
+        for each in users:
+            total_num_each_level.insert(index, str(each[1]))
+            index = index + 1
+
+        # Get rid of duplicate levels
+        for i in total_num_each_level:
+            if i not in levels:
+                levels.append(i)
+
+        # Reverse list from desc to asc to be able to pop from highest to lowest
+        levels.reverse()
+        num = levels.pop()
+        str_users = ""
+        str_users = str_users + "*** LEVEL " + num + " ***" + "\n"
+
+        for index in users:
+            if str(index[1]) == num:
+                str_users = str_users + str(index[0] + "\n")
+            else:
+                num = levels.pop()
+                str_users = str_users + "*** LEVEL " + num + " ***" + "\n"
+                str_users = str_users + str(index[0] + "\n")
+        return str_users
+
+
+    async def get_standings(self, channel: discord.TextChannel,
+                            author: discord.member.Member, word: str):
         embed: discord.Embed = discord.Embed(title='Leaderboard',
                                              colour=author.colour,
                                              timestamp=datetime.now())
@@ -605,8 +638,8 @@ class WaniKaniBotClient(discord.Client):
         I am not sure how to get username and level directly from fetch_wanikani_user_data() so I created a separate
         function in datafetcher.py. 
         """
-
-        users = self._dataStorage.get_api_users()
+        all_users = self._dataStorage.get_database()
+        users = all_users.find({"leaderboard": True})
         retrieve_user_info: Dict[str, Any]
         list = []
         for user in users:
@@ -618,27 +651,43 @@ class WaniKaniBotClient(discord.Client):
         # list = [('user1', 6), ('user2', 3), ('user3', 7), ('user4', 7)]
         # print(list)
 
-        sorted_list = (sorted(list, key=lambda x: x[1], reverse=True))
-        str_users = ""
-        str_levels = ""
+        if (list.__len__() == 0):
+            print("List is empty")
+            embed: discord.Embed = discord.Embed(title='Leaderboard (No registered users yet)',
+                                                 colour=author.colour,
+                                                 timestamp=datetime.now())
 
-        # get all of the usernames in descending order of level status
-        for itr in sorted_list:
-            str_users = str_users + (str(itr[0]) + "\n")
+            await self.send_embed(channel=channel, embed=embed)
+        else:
 
-        # get the levels of all users
-        for itr in sorted_list:
-            str_levels = str_levels + (str(itr[1]) + "\n")
+            # list = [('user1', 6), ('user2', 3), ('user3', 7), ('user4', 7)]
+            # print(list)
 
-        embed.add_field(name='Username',
-                        value='%s' % str_users,
-                        inline=True)
-        embed.add_field(name='level',
-                        value='%s' % str_levels,
-                        inline=True)
+            sorted_list = (sorted(list, key=lambda x: x[1], reverse=True))
+            str_users = ""
+            str_levels = ""
+            if word == 'lbmob':
+                str_users = await self.leaderboard_for_mobile(sorted_list)
+                embed.add_field(name='Display table',
+                                value='%s' % str_users,
+                                inline=True)
+            else:
+                # get all of the usernames in descending order of level status
+                for itr in sorted_list:
+                    str_users = str_users + (str(itr[0]) + "\n")
 
-        await self.send_embed(channel=channel, embed=embed)
+                # get the levels of all users
+                for itr in sorted_list:
+                    str_levels = str_levels + (str(itr[1]) + "\n")
 
+                embed.add_field(name='Username',
+                                value='%s' % str_users,
+                                inline=True)
+                embed.add_field(name='level',
+                                value='%s' % str_levels,
+                                inline=True)
+
+            await self.send_embed(channel=channel, embed=embed)
     async def get_leveling_stats(self, words: List[str], channel: discord.TextChannel,
                                  author: discord.member.Member, prefix: str):
         """
@@ -753,7 +802,13 @@ class WaniKaniBotClient(discord.Client):
                             value="Draws your message on a sign.",
                             inline=False)
             embed.add_field(name=f'{prefix}lb',
-                            value="Displays the leaderboard.",
+                            value="Displays the leaderboard (desktop).",
+                            inline=False)
+            embed.add_field(name=f'{prefix}lbmob',
+                            value="Displays the leaderboard (mobile).",
+                            inline=False)
+            embed.add_field(name=f'{prefix}addmelb',
+                            value="Adds user to the leaderboard.",
                             inline=False)
             embed.add_field(name=f'{prefix}congratulations',
                             value=':tada:',
